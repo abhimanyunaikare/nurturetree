@@ -1,39 +1,63 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { Stack, useRouter, useSegments } from "expo-router";
+import { View, Text, ActivityIndicator } from "react-native";
+import { useEffect, useState } from "react";
+import { onAuthStateChange } from "@/hooks/authService"; // Ensure this is correct
+import { User } from "firebase/auth";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+export default function Layout() {
+  const router = useRouter();
+  const segments = useSegments(); // Get current navigation segments
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // Track auth state
+  const [redirecting, setRedirecting] = useState(false); // Prevent multiple redirects
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    const unsubscribe = onAuthStateChange((authUser) => {
+      setUser((prevUser) => {
+        if (prevUser?.uid !== authUser?.uid) {
+          return authUser; // Only update if user actually changes
+        }
+        return prevUser;
+      });
+      setLoading(false);
+    });
+  
+    return () => unsubscribe();
+  }, []);
 
-  if (!loaded) {
-    return null;
+  useEffect(() => {
+    if (loading || redirecting) return; // Avoid looping
+  
+    const isAuthPage = segments[0] === "auth";
+  
+    if (!user && !isAuthPage) {
+      setRedirecting(true);
+      router.replace("/auth");
+    } else if (user && isAuthPage) {
+      setRedirecting(true);
+      router.replace("/");
+    }
+  
+    setRedirecting(false); // Reset flag after redirection
+  }, [user, loading]);
+
+  // Show a loading screen while checking authentication
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Checking authentication...</Text>
+      </View>
+    );
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <View style={{ flex: 1 }}>
+      <Stack />
+      {/* Debugging: Display auth state */}
+      <Text style={{ textAlign: "center", padding: 10, backgroundColor: "#eee" }}>
+        {user ? `Logged in as: ${user.email}` : "Not Logged In"}
+      </Text>
+    </View>
   );
 }
