@@ -13,6 +13,8 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState(""); // New state for name
+
 
   const [request, response, promptAsync] = Google.useAuthRequest({
       expoClientId: "YOUR_EXPO_CLIENT_ID",
@@ -47,6 +49,15 @@ const AuthScreen: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.title}>{isLogin ? "Login" : "Sign Up"}</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      
+        <TextInput
+          style={styles.input}
+          placeholder="Name"
+          value={name}
+          onChangeText={setName}
+        />
+      
 
       <TextInput
         style={styles.input}

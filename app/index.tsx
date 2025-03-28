@@ -7,49 +7,58 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Alert
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-import { logOut, onAuthStateChange } from "@/hooks/authService";
+import { logOut, onAuthStateChange , getStoredUser} from "@/hooks/authService";
 import { useRouter } from "expo-router";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
-import { Alert } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import { Circle } from 'react-native-maps';
 
 
 const Index: React.FC = () => {
-  const router = useRouter();
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [loadingLocation, setLoadingLocation] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [treeName, setTreeName] = useState("");
-  const [treeType, setTreeType] = useState("");
-  const [treeAge, setTreeAge] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
-  const [interval, setInterval] = useState("");
-  const [sunlight, setSunlight] = useState("");
-  const [water_qty, setWaterqty] = useState("");
-  const mapRef = React.useRef(null);
-  const [trees, setTrees] = useState([]); // Store trees fetched from API
+    const router = useRouter();
+    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [userLocation, setUserLocation] = useState(null);
+    const [loadingLocation, setLoadingLocation] = useState(false);
+    const [addTreeModalVisible, setAddTreeModalVisible] = useState(false);
+    const [treeDetailsModalVisible, setTreeDetailsModalVisible] = useState(false);
+    const [treeName, setTreeName] = useState("");
+    const [treeType, setTreeType] = useState("");
+    const [treeAge, setTreeAge] = useState("");
+    const [latitude, setLatitude] = useState("");
+    const [longitude, setLongitude] = useState("");
+    const [interval, setInterval] = useState("");
+    const [sunlight, setSunlight] = useState("");
+    const [water_qty, setWaterqty] = useState("");
+    const [selectedTree, setSelectedTree] = useState(null);
 
-  const [user, setUser] = useState(null); // Store logged-in user
+    const mapRef = React.useRef(null);
+    const [trees, setTrees] = useState([]); // Store trees fetched from API
 
-  const [region, setRegion] = useState({
-    latitude: 20.5937,
-    longitude: 78.9629,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  });
+    const [user, setUser] = useState<{ id: number; name: string } | null>(null);
 
-  // Simulated user data
-  const userName = "John Doe";
-  const treesPlanted = 15;
-  const treesNeedingHelp = 3;
+    const [region, setRegion] = useState({
+        latitude: 20.5937,
+        longitude: 78.9629,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    });
 
-  
+    // Simulated user data
+    const userName = "John Doe";
+    const treesPlanted = 15;
+    const treesNeedingHelp = 3;
+
+    useEffect(() => {
+        const fetchUser = async () => {
+          const storedUser = await getStoredUser();
+          setUser(storedUser);
+        };
+        fetchUser();
+      }, []);
 
   useEffect(() => {
     (async () => {
@@ -100,78 +109,121 @@ const Index: React.FC = () => {
         }
     };
 
-  const handleGetCurrentLocation = async () => {
-    setLoadingLocation(true);
-    let location = await Location.getCurrentPositionAsync({});
-    const currentLocation = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
+    const handleMarkerPress = (tree) => {
+        setSelectedTree(tree);
+        setTreeDetailsModalVisible(true);
     };
-    setUserLocation(currentLocation);
-    setSelectedLocation(currentLocation);
-    setLatitude(currentLocation.latitude.toString());
-    setLongitude(currentLocation.longitude.toString());
-    setLoadingLocation(false);
+
+    const handleGetCurrentLocation = async () => {
+        setLoadingLocation(true);
+        let location = await Location.getCurrentPositionAsync({});
+        const currentLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        };
+        setUserLocation(currentLocation);
+        setSelectedLocation(currentLocation);
+        setLatitude(currentLocation.latitude.toString());
+        setLongitude(currentLocation.longitude.toString());
+        setLoadingLocation(false);
 
 
-    // Animate map to new location
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        ...currentLocation,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      });
-    }
-  };
-
-  const handleAddTree = () => {
-    if (!selectedLocation) return;
-    setModalVisible(true); // Open modal when clicking "Add Tree"
-  };
-
-  const handleSubmitTree = async() => {
-    if (!selectedLocation || !treeName || !treeType) {
-        Alert.alert("Error", "Please fill in all fields and select a location.");
-        return;
-    }
-    const treeData = {
-        name: treeName,  
-        species: treeType,  
-        age: treeAge,  
-        lat: selectedLocation.latitude.toString(),  
-        long: selectedLocation.longitude.toString(),  
-        interval: interval,  
-        sunlight: sunlight,  
-        water_qty: water_qty,  
-    };
-  
-    try {  
-        const response = await fetch("http://192.168.35.131:8000/api/trees", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(treeData),
+        // Animate map to new location
+        if (mapRef.current) {
+        mapRef.current.animateToRegion({
+            ...currentLocation,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
         });
-        const data = await response.json();
-        if (response.ok) {
-            Alert.alert("Success", "Tree added successfully!");
-            setModalVisible(false);
-            setTreeName("");
-            setTreeType("");
-            setTreeAge("");
-
-        } else {
-
-            Alert.alert("Error", data.message || "Failed to add tree.");
-
         }
+    };
+
+
+    const handleWaterTree = async (treeId) => {
+
+        Alert.alert("Water Tree", "Are you sure you want to water this tree?", [
+        {
+            text: "Cancel",
+            style: "cancel",
+        },
+        {
+            text: "OK",
+            onPress: async () => {
+                try {
+                    const response = await fetch(`http://192.168.35.131:8000/api/trees/${treeId}/nurture`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            tree_id: treeId, 
+                            watered_by: "user123",  // Replace with actual user ID or name
+                        }),
+                    });
+                    if (response.ok) {
+                        Alert.alert("Success", "Tree watered successfully!");
+                        fetchTrees();
+                        setAddTreeModalVisible(false);                    
+                    } else {
+                        console.error(response);
+                        Alert.alert("Error", `Failed to water the tree ${treeId}.`);
+                    }
+            } catch (error) {
+                Alert.alert("Error", "Could not connect to server." + error);
+            }
+            },
+        },
+        ]);
+    };
   
-    } catch (error) {
-          Alert.alert("Error", "Could not connect to server."+error);
-    }
-  
-  };
+    const handleAddTree = () => {
+        if (!selectedLocation) return;
+        setAddTreeModalVisible(true);
+    };
+
+    const handleSubmitTree = async() => {
+        if (!selectedLocation || !treeName || !treeType) {
+            Alert.alert("Error", "Please fill in all fields and select a location.");
+            return;
+        }
+        const treeData = {
+            name: treeName,  
+            species: treeType,  
+            age: treeAge,  
+            lat: selectedLocation.latitude.toString(),  
+            long: selectedLocation.longitude.toString(),  
+            interval: interval,  
+            sunlight: sunlight,  
+            water_qty: water_qty,  
+        };
+    
+        try {  
+            const response = await fetch("http://192.168.35.131:8000/api/trees", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify(treeData),
+            });
+            const data = await response.json();
+            if (response.ok) {
+                Alert.alert("Success", "Tree added successfully!");
+                setAddTreeModalVisible(false);
+                setTreeName("");
+                setTreeType("");
+                setTreeAge("");
+
+            } else {
+
+                Alert.alert("Error", data.message || "Failed to add tree.");
+
+            }
+    
+        } catch (error) {
+            Alert.alert("Error", "Could not connect to server."+error);
+        }
+    
+    };
 
   return (
     <View style={styles.container}>
@@ -185,7 +237,7 @@ const Index: React.FC = () => {
 
       {/* Floating User Info */}
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{userName}</Text>
+      <Text>Welcome {user ? user.name : "Guest"}!</Text>
 
         <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
           <FontAwesome5 name="seedling" size={18} color="green" />
@@ -223,6 +275,7 @@ const Index: React.FC = () => {
             pinColor="green"
             title={tree.name || "Tree"}
             description={`Type: ${tree.species}`}
+            onPress={() => handleMarkerPress(tree)}
         />
 
         ))}
@@ -255,8 +308,42 @@ const Index: React.FC = () => {
         <Text style={styles.buttonText}>Add Tree</Text>
       </TouchableOpacity>
 
+        {/* Tree Info Modal */}
+
+        <Modal animationType="slide" transparent={true}  visible={treeDetailsModalVisible}>
+            <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                    {selectedTree && (
+                        <>
+
+                        <Text style={styles.modalTitle}>{selectedTree.name || "Tree Details"}</Text>
+                        <Text>Type: {selectedTree.species}</Text>
+                        <Text>Age: {selectedTree.age || "Unknown"}</Text>
+                        <Text>Location: {selectedTree.lat}, {selectedTree.long}</Text>
+
+                        <TouchableOpacity
+                            style={styles.waterButton}
+                            onPress={() => handleWaterTree(selectedTree.id)}
+                        >
+                            <Text style={styles.buttonText}>Water the Tree</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => setTreeDetailsModalVisible(false)}
+                        >
+                            <Text style={styles.buttonText}>Close</Text>
+                        </TouchableOpacity>
+
+                        </>
+                    )}
+
+                </View>
+            </View>
+        </Modal>
+
       {/* Modal for Adding Tree Details */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal visible={addTreeModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add a Tree</Text>
@@ -320,7 +407,7 @@ const Index: React.FC = () => {
               <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
                 <Text style={styles.buttonText}>Submit</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setAddTreeModalVisible(false)}>
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -332,100 +419,112 @@ const Index: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  inputContainer: {
-    marginBottom: 8,
-    width: "100%",
-  },
-  label: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 3,
-    marginLeft: 2,
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    backgroundColor: "#fff",
-    width: "100%",
-    height: 50, // Increased height
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  picker: {
-    fontSize: 16,
-    color: "#333",
-    height: 50, // Ensure enough space for text
-    paddingVertical: 10, // Adjust vertical padding
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "rgba(40, 167, 69, 0.8)", // Semi-transparent header
-    padding: 15,
-  },
-  headerText: { color: "white", fontSize: 20, fontWeight: "bold" },
-  map: { flex: 1 },
-  userInfo: {
-    position: "absolute",
-    top: 80,
-    left: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    padding: 10,
-    borderRadius: 10,
-    alignItems: "center",
-    zIndex: 10,
-    elevation: 5,
-  },
-  userName: { fontSize: 16, fontWeight: "bold", marginBottom: 5 },
-  statItem: { flexDirection: "row", alignItems: "center", padding: 5 },
-  statText: { fontSize: 16, marginLeft: 5, fontWeight: "bold" },
-  locationButton: {
-    position: "absolute",
-    bottom: 140,
-    right: 20,
-    backgroundColor: "#28a745",
-    padding: 12,
-    borderRadius: 30,
-  },
-  addTreeButton: {
-    position: "absolute",
-    bottom: 60,
-    left: "50%",
-    transform: [{ translateX: -50 }],
-    backgroundColor: "#007bff",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-  },
-  buttonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
-    width: "80%",
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  input: {
-    width: "100%",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  modalButtons: { flexDirection: "row", width: "100%", justifyContent: "space-between" },
-  submitButton: { flex: 1, backgroundColor: "#28a745", padding: 10, borderRadius: 5, marginRight: 5 },
-  cancelButton: { flex: 1, backgroundColor: "red", padding: 10, borderRadius: 5, marginLeft: 5 },
+    container: { flex: 1 },
+    inputContainer: {
+        marginBottom: 8,
+        width: "100%",
+    },
+    label: {
+        fontSize: 14,
+        color: "#444",
+        marginBottom: 3,
+        marginLeft: 2,
+    },
+    pickerWrapper: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 6,
+        backgroundColor: "#fff",
+        width: "100%",
+        height: 50, // Increased height
+        justifyContent: "center",
+        paddingHorizontal: 8,
+    },
+    picker: {
+        fontSize: 16,
+        color: "#333",
+        height: 50, // Ensure enough space for text
+        paddingVertical: 10, // Adjust vertical padding
+    },
+    waterButton: {
+        backgroundColor: "blue",
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 10,
+    },
+    closeButton: {
+        backgroundColor: "red",
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 10,
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        backgroundColor: "rgba(40, 167, 69, 0.8)", // Semi-transparent header
+        padding: 15,
+    },
+    headerText: { color: "white", fontSize: 20, fontWeight: "bold" },
+    map: { flex: 1 },
+    userInfo: {
+        position: "absolute",
+        top: 80,
+        left: 10,
+        backgroundColor: "rgba(255, 255, 255, 0.8)",
+        padding: 10,
+        borderRadius: 10,
+        alignItems: "center",
+        zIndex: 10,
+        elevation: 5,
+    },
+    userName: { fontSize: 16, fontWeight: "bold", marginBottom: 5 },
+    statItem: { flexDirection: "row", alignItems: "center", padding: 5 },
+    statText: { fontSize: 16, marginLeft: 5, fontWeight: "bold" },
+    locationButton: {
+        position: "absolute",
+        bottom: 140,
+        right: 20,
+        backgroundColor: "#28a745",
+        padding: 12,
+        borderRadius: 30,
+    },
+    addTreeButton: {
+        position: "absolute",
+        bottom: 60,
+        left: "50%",
+        transform: [{ translateX: -50 }],
+        backgroundColor: "#007bff",
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    buttonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    modalContent: {
+        width: "80%",
+        backgroundColor: "white",
+        padding: 20,
+        borderRadius: 10,
+        alignItems: "center",
+    },
+    modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
+    input: {
+        width: "100%",
+        padding: 10,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 5,
+        marginBottom: 10,
+    },
+    modalButtons: { flexDirection: "row", width: "100%", justifyContent: "space-between" },
+    submitButton: { flex: 1, backgroundColor: "#28a745", padding: 10, borderRadius: 5, marginRight: 5 },
+    cancelButton: { flex: 1, backgroundColor: "red", padding: 10, borderRadius: 5, marginLeft: 5 },
 });
 
 export default Index;

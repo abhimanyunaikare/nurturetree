@@ -11,14 +11,36 @@ import { auth } from "@/constants/firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Sign Up
-export const signUp = async (email: string, password: string) => {
+export const signUp = async (name: string, email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    
+    // Send user data to Laravel API
+    const response = await fetch("http://192.168.35.131:8000/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: name, email: email }),
+    });
+    const data = await response.json();
+
+    await AsyncStorage.setItem("user", JSON.stringify({ id: data.user.id, name: data.user.name, email }));
+
+    console.log(data);
+    
     return userCredential.user;
+
   } catch (error: any) {
     throw new Error(error.message);
   }
 };
+
+export const getStoredUser = async () => {
+  const userData = await AsyncStorage.getItem("user");
+  return userData ? JSON.parse(userData) : null;
+};
+
 
 // Get User State from Firebase Instead of AsyncStorage
 export const getUser = async () => {

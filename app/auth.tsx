@@ -9,6 +9,7 @@ const AuthScreen: React.FC = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -29,7 +30,7 @@ const AuthScreen: React.FC = () => {
       if (isLogin) {
         await logIn(email, password);
       } else {
-        await signUp(email, password);
+        await signUp(name, email, password);
       }
     } catch (err: any) {
       setError(err.message);
@@ -50,6 +51,16 @@ const AuthScreen: React.FC = () => {
       <Text style={styles.title}>{isLogin ? "Login" : "Sign Up"}</Text>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
+
+      
+      <TextInput
+        style={styles.input}
+        placeholder="Name"
+        value={name}
+        onChangeText={setName}
+        autoCapitalize="words"
+      />
+    
 
       <TextInput
         style={styles.input}
