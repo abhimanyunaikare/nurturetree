@@ -8,11 +8,11 @@ import {
   Modal,
   TextInput,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-import { logOut } from "@/hooks/authService";
+import { logOut, onAuthStateChange } from "@/hooks/authService";
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 
 const Index: React.FC = () => {
   const router = useRouter();
@@ -23,6 +23,21 @@ const Index: React.FC = () => {
   const [treeName, setTreeName] = useState("");
   const [treeType, setTreeType] = useState("");
   const [treeAge, setTreeAge] = useState("");
+  const mapRef = React.useRef(null);
+
+  const [user, setUser] = useState(null); // Store logged-in user
+
+  const [region, setRegion] = useState({
+    latitude: 20.5937,
+    longitude: 78.9629,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
+
+  // Simulated user data
+  const userName = "John Doe";
+  const treesPlanted = 15;
+  const treesNeedingHelp = 3;
 
   useEffect(() => {
     (async () => {
@@ -30,13 +45,23 @@ const Index: React.FC = () => {
       if (status !== "granted") {
         return;
       }
-      let location = await Location.getCurrentPositionAsync({});
-      const currentLocation = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      setUserLocation(currentLocation);
-      setSelectedLocation(currentLocation);
+      try {
+
+        let location = await Location.getCurrentPositionAsync({});  
+        const currentLocation = {  
+          latitude: location.coords.latitude,  
+          longitude: location.coords.longitude,  
+        };
+  
+        setUserLocation(currentLocation);  
+        setSelectedLocation(currentLocation);  
+        setRegion({ ...currentLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 });  
+
+      } catch (error) {
+  
+        console.error("Error getting location:", error);
+  
+      }
     })();
   }, []);
 
@@ -50,6 +75,15 @@ const Index: React.FC = () => {
     setUserLocation(currentLocation);
     setSelectedLocation(currentLocation);
     setLoadingLocation(false);
+
+    // Animate map to new location
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        ...currentLocation,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    }
   };
 
   const handleAddTree = () => {
@@ -65,7 +99,7 @@ const Index: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header with transparency */}
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>Plant a Tree</Text>
         <TouchableOpacity onPress={logOut}>
@@ -73,16 +107,36 @@ const Index: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Map View */}
-      <MapView
-        style={styles.map}
-        region={{
-          latitude: userLocation?.latitude || 20.5937,
-          longitude: userLocation?.longitude || 78.9629,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-      >
+      {/* Floating User Info */}
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>{userName}</Text>
+
+        <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
+          <FontAwesome5 name="seedling" size={18} color="green" />
+          <Text style={styles.statText}>{treesPlanted}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
+          <FontAwesome5 name="exclamation-circle" size={18} color="red" />
+          <Text style={styles.statText}>{treesNeedingHelp}</Text>
+        </TouchableOpacity>
+      </View>
+
+        {/* Map View */}
+        <MapView style={styles.map} region={region}
+            ref={mapRef}
+            provider={PROVIDER_GOOGLE}
+            style={styles.map}
+            initialRegion={{
+                latitude: userLocation?.latitude || 20.5937,
+                longitude: userLocation?.longitude || 78.9629,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+            }}
+            onPress={(e) => {
+            setSelectedLocation(e.nativeEvent.coordinate);
+            }}
+        >
         {selectedLocation && <Marker coordinate={selectedLocation} />}
       </MapView>
 
@@ -113,7 +167,7 @@ const Index: React.FC = () => {
             />
             <TextInput style={styles.input} placeholder="Tree Type" value={treeType} onChangeText={setTreeType} />
             <TextInput style={styles.input} placeholder="Tree Age (months)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
-           
+
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
                 <Text style={styles.buttonText}>Submit</Text>
@@ -140,6 +194,20 @@ const styles = StyleSheet.create({
   },
   headerText: { color: "white", fontSize: 20, fontWeight: "bold" },
   map: { flex: 1 },
+  userInfo: {
+    position: "absolute",
+    top: 80,
+    left: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    zIndex: 10,
+    elevation: 5,
+  },
+  userName: { fontSize: 16, fontWeight: "bold", marginBottom: 5 },
+  statItem: { flexDirection: "row", alignItems: "center", padding: 5 },
+  statText: { fontSize: 16, marginLeft: 5, fontWeight: "bold" },
   locationButton: {
     position: "absolute",
     bottom: 140,
@@ -147,8 +215,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#28a745",
     padding: 12,
     borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
   },
   addTreeButton: {
     position: "absolute",
@@ -160,12 +226,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
   },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
+  buttonText: { color: "white", fontSize: 16, fontWeight: "bold" },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -179,11 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
   input: {
     width: "100%",
     padding: 10,
@@ -192,25 +249,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  submitButton: {
-    flex: 1,
-    backgroundColor: "#28a745",
-    padding: 10,
-    borderRadius: 5,
-    marginRight: 5,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: "red",
-    padding: 10,
-    borderRadius: 5,
-    marginLeft: 5,
-  },
+  modalButtons: { flexDirection: "row", width: "100%", justifyContent: "space-between" },
+  submitButton: { flex: 1, backgroundColor: "#28a745", padding: 10, borderRadius: 5, marginRight: 5 },
+  cancelButton: { flex: 1, backgroundColor: "red", padding: 10, borderRadius: 5, marginLeft: 5 },
 });
 
 export default Index;
