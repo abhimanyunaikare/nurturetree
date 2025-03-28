@@ -1,127 +1,216 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, TextInput, Modal, TouchableOpacity } from "react-native";
-import MapView, { Marker, MapPressEvent } from "react-native-maps";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
+import { logOut } from "@/hooks/authService";
+import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
-export default function Index() {
-    const [region, setRegion] = useState(null);
-    const [marker, setMarker] = useState(null);
-    const [isAdding, setIsAdding] = useState(false);
-    const [showForm, setShowForm] = useState(false);
-    const [treeName, setTreeName] = useState("");
-    const [treeType, setTreeType] = useState("");
+const Index: React.FC = () => {
+  const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [treeName, setTreeName] = useState("");
+  const [treeType, setTreeType] = useState("");
+  const [treeAge, setTreeAge] = useState("");
 
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                console.log("Permission to access location was denied");
-                return;
-            }
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return;
+      }
+      let location = await Location.getCurrentPositionAsync({});
+      const currentLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setUserLocation(currentLocation);
+      setSelectedLocation(currentLocation);
+    })();
+  }, []);
 
-            let location = await Location.getCurrentPositionAsync({});
-            setRegion({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            });
-        })();
-    }, []);
-
-    const handleMapPress = (e: MapPressEvent) => {
-        if (isAdding) {
-            setMarker(e.nativeEvent.coordinate);
-        }
+  const handleGetCurrentLocation = async () => {
+    setLoadingLocation(true);
+    let location = await Location.getCurrentPositionAsync({});
+    const currentLocation = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
     };
+    setUserLocation(currentLocation);
+    setSelectedLocation(currentLocation);
+    setLoadingLocation(false);
+  };
 
-    const handleConfirmLocation = () => {
-        setIsAdding(false);
-        setShowForm(true);
-    };
+  const handleAddTree = () => {
+    if (!selectedLocation) return;
+    setModalVisible(true); // Open modal when clicking "Add Tree"
+  };
 
-    const handleSubmit = () => {
-        console.log("Tree Added:", { treeName, treeType, location: marker });
-        setShowForm(false);
-        setTreeName("");
-        setTreeType("");
-    };
+  const handleSubmitTree = () => {
+    console.log("Tree added:", { name: treeName, location: selectedLocation });
+    setModalVisible(false);
+    setTreeName("");
+  };
 
-    return (
-        <View style={{ flex: 1 }}>
-            {region ? (
-                <MapView
-                    style={{ flex: 1 }}
-                    initialRegion={region}
-                    onPress={handleMapPress}
-                >
-                    {marker && <Marker coordinate={marker} />}
-                </MapView>
-            ) : (
-                <Text>Loading Map...</Text>
-            )}
+  return (
+    <View style={styles.container}>
+      {/* Header with transparency */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Plant a Tree</Text>
+        <TouchableOpacity onPress={logOut}>
+          <Feather name="log-out" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-            {!isAdding && !showForm && (
-                <TouchableOpacity
-                    style={{
-                        position: "absolute",
-                        bottom: 20,
-                        left: "50%",
-                        transform: [{ translateX: -50 }],
-                        backgroundColor: "blue",
-                        padding: 10,
-                        borderRadius: 5,
-                    }}
-                    onPress={() => setIsAdding(true)}
-                >
-                    <Text style={{ color: "white" }}>Add</Text>
-                </TouchableOpacity>
-            )}
+      {/* Map View */}
+      <MapView
+        style={styles.map}
+        region={{
+          latitude: userLocation?.latitude || 20.5937,
+          longitude: userLocation?.longitude || 78.9629,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+      >
+        {selectedLocation && <Marker coordinate={selectedLocation} />}
+      </MapView>
 
-            {isAdding && marker && (
-                <TouchableOpacity
-                    style={{
-                        position: "absolute",
-                        bottom: 20,
-                        left: "50%",
-                        transform: [{ translateX: -50 }],
-                        backgroundColor: "green",
-                        padding: 10,
-                        borderRadius: 5,
-                    }}
-                    onPress={handleConfirmLocation}
-                >
-                    <Text style={{ color: "white" }}>Select Position</Text>
-                </TouchableOpacity>
-            )}
+      {/* Get Current Location Button */}
+      <TouchableOpacity style={styles.locationButton} onPress={handleGetCurrentLocation}>
+        {loadingLocation ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Feather name="crosshair" size={24} color="white" />
+        )}
+      </TouchableOpacity>
 
-            <Modal visible={showForm} transparent={true} animationType="slide">
-                <View
-                    style={{
-                        flex: 1,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        backgroundColor: "rgba(0,0,0,0.5)",
-                    }}
-                >
-                    <View style={{ backgroundColor: "white", padding: 20, borderRadius: 10 }}>
-                        <Text>Enter Tree Details</Text>
-                        <TextInput
-                            placeholder="Tree Name"
-                            value={treeName}
-                            onChangeText={setTreeName}
-                            style={{ borderBottomWidth: 1, marginBottom: 10 }}
-                        />
-                        <TextInput
-                            placeholder="Tree Type"
-                            value={treeType}
-                            onChangeText={setTreeType}
-                            style={{ borderBottomWidth: 1, marginBottom: 10 }}
-                        />
-                        <Button title="Add Tree" onPress={handleSubmit} />
-                    </View>
-                </View>
-            </Modal>
+      {/* Add Tree Button */}
+      <TouchableOpacity style={styles.addTreeButton} onPress={handleAddTree}>
+        <Text style={styles.buttonText}>Add Tree</Text>
+      </TouchableOpacity>
+
+      {/* Modal for Adding Tree Details */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add a Tree</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter tree name"
+              value={treeName}
+              onChangeText={setTreeName}
+            />
+            <TextInput style={styles.input} placeholder="Tree Type" value={treeType} onChangeText={setTreeType} />
+            <TextInput style={styles.input} placeholder="Tree Age (months)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
+           
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
+                <Text style={styles.buttonText}>Submit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-    );
-}
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(40, 167, 69, 0.8)", // Semi-transparent header
+    padding: 15,
+  },
+  headerText: { color: "white", fontSize: 20, fontWeight: "bold" },
+  map: { flex: 1 },
+  locationButton: {
+    position: "absolute",
+    bottom: 140,
+    right: 20,
+    backgroundColor: "#28a745",
+    padding: 12,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addTreeButton: {
+    position: "absolute",
+    bottom: 60,
+    left: "50%",
+    transform: [{ translateX: -50 }],
+    backgroundColor: "#007bff",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  submitButton: {
+    flex: 1,
+    backgroundColor: "#28a745",
+    padding: 10,
+    borderRadius: 5,
+    marginRight: 5,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "red",
+    padding: 10,
+    borderRadius: 5,
+    marginLeft: 5,
+  },
+});
+
+export default Index;

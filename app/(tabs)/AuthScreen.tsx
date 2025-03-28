@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { signUp, logIn, logOut } from "@/hooks/authService";
+import * as Google from "expo-auth-session/providers/google";
+import { auth } from "@/constants/firebaseConfig";
+
+
 
 const AuthScreen: React.FC = () => {
   const router = useRouter();
@@ -9,6 +13,21 @@ const AuthScreen: React.FC = () => {
   const [password, setPassword] = useState<string>("");
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+      expoClientId: "YOUR_EXPO_CLIENT_ID",
+      androidClientId: "YOUR_ANDROID_CLIENT_ID",
+  });
+
+
+
+  useEffect(() => {
+      if (response?.type === "success") {
+          const { id_token } = response.params;
+          const credential = GoogleAuthProvider.credential(id_token);
+          signInWithCredential(auth, credential);
+      }
+  }, [response]);
 
   const handleAuth = async () => {
     setError(null);
@@ -46,7 +65,11 @@ const AuthScreen: React.FC = () => {
         secureTextEntry
       />
 
+      <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()}>
+                <Text style={styles.buttonText}>Sign in with Google</Text>
+            </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleAuth}>
+
         <Text style={styles.buttonText}>{isLogin ? "Login" : "Sign Up"}</Text>
       </TouchableOpacity>
 

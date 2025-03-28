@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { signUp, logIn, onAuthStateChange } from "@/hooks/authService";
+import { signUp, logIn, signInWithGoogle, onAuthStateChange } from "@/hooks/authService";
 import { User } from "firebase/auth";
+import { AntDesign } from "@expo/vector-icons";
 
 const AuthScreen: React.FC = () => {
   const router = useRouter();
@@ -35,6 +36,15 @@ const AuthScreen: React.FC = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{isLogin ? "Login" : "Sign Up"}</Text>
@@ -60,6 +70,11 @@ const AuthScreen: React.FC = () => {
 
       <TouchableOpacity style={styles.button} onPress={handleAuth}>
         <Text style={styles.buttonText}>{isLogin ? "Login" : "Sign Up"}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
+        <AntDesign name="google" size={24} color="white" />
+        <Text style={styles.googleButtonText}>Continue with Google</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
@@ -96,10 +111,27 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
+    alignItems: "center",
+    width: "100%",
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#db4437",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    width: "100%",
+    justifyContent: "center",
+  },
+  googleButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    marginLeft: 10,
   },
   toggleText: {
     marginTop: 10,
@@ -111,4 +143,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AuthScreen; 
+export default AuthScreen;

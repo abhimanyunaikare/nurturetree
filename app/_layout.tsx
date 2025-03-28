@@ -53,11 +53,11 @@ export default function Layout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack />
+      <Stack screenOptions={{ headerShown: false }} />
       {/* Debugging: Display auth state */}
-      <Text style={{ textAlign: "center", padding: 10, backgroundColor: "#eee" }}>
+      {/* <Text style={{ textAlign: "center", padding: 10, backgroundColor: "#eee" }}>
         {user ? `Logged in as: ${user.email}` : "Not Logged In"}
-      </Text>
+      </Text> */}
     </View>
   );
 }
