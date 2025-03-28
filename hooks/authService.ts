@@ -14,22 +14,30 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export const signUp = async (name: string, email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
+    const user = userCredential.user;
+
     // Send user data to Laravel API
     const response = await fetch("http://192.168.35.131:8000/api/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name: name, email: email }),
+      body: JSON.stringify({ name: name, email: email, password: password }),
     });
-    const data = await response.json();
+ 
+    if (!response.ok) throw new Error("Failed to save user in database");
 
-    await AsyncStorage.setItem("user", JSON.stringify({ id: data.user.id, name: data.user.name, email }));
+    const savedUser = await response.json();
 
-    console.log(data);
+    const newUser = { id: savedUser.user.id, name: savedUser.user.name, email };
+
+
+    await AsyncStorage.removeItem("user");
+    await AsyncStorage.setItem("user", JSON.stringify(newUser));
+
+    console.log(newUser);
     
-    return userCredential.user;
+    return newUser;
 
   } catch (error: any) {
     throw new Error(error.message);
@@ -38,7 +46,7 @@ export const signUp = async (name: string, email: string, password: string) => {
 
 export const getStoredUser = async () => {
   const userData = await AsyncStorage.getItem("user");
-  return userData ? JSON.parse(userData) : null;
+  return userData ? JSON.parse(userData) : null; 
 };
 
 
@@ -51,12 +59,29 @@ export const getUser = async () => {
     });
   });
 };
-
+ 
 // Log In
 export const logIn = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
+
+    const user = userCredential.user;
+
+    const response = await fetch(`http://192.168.35.131:8000/api/user?email=${email}`);
+    const userData = await response.json();
+    console.log(userData);
+    if (userData.success) {
+      const loggedUser = { id: userData.user.id, name: userData.user.name, email };
+
+      await AsyncStorage.setItem("user", JSON.stringify(loggedUser));
+
+      console.log("User logged in:", loggedUser);
+      return loggedUser;
+    } else {
+      console.log("User data fetch failed");
+
+      throw new Error("User data fetch failed");
+    }
   } catch (error: any) {
     throw new Error(error.message);
   }
@@ -66,6 +91,8 @@ export const logIn = async (email: string, password: string) => {
 export const logOut = async () => {
   try {
     await signOut(auth);
+    await AsyncStorage.removeItem("user");
+
     console.log("User logged out");
   } catch (error: any) {
     throw new Error(error.message);
