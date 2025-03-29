@@ -1,7 +1,10 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { View, Text, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
-import { onAuthStateChange } from "@/hooks/authService"; // Ensure this is correct
+import { onAuthStateChange, getStoredUser } from "@/hooks/authService";   
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
 import { User } from "firebase/auth";
 
 export default function Layout() {
@@ -12,16 +15,29 @@ export default function Layout() {
   const [redirecting, setRedirecting] = useState(false); // Prevent multiple redirects
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChange((authUser) => {
-      setUser((prevUser) => {
-        if (prevUser?.uid !== authUser?.uid) {
-          return authUser; // Only update if user actually changes
-        }
-        return prevUser;
-      });
+    // Load user from AsyncStorage first
+    const loadStoredUser = async () => {
+      const storedUser = await getStoredUser();
+      if (storedUser) {
+        setUser(storedUser); // Set user immediately if available
+      }
+    };
+
+    loadStoredUser();
+
+    // Listen to Firebase auth state
+    const unsubscribe = onAuthStateChange(async (authUser) => {
+      if (authUser) {
+        const storedUser = await getStoredUser();
+        setUser(storedUser || authUser); // Prefer stored user with extra details
+      } else {
+        await AsyncStorage.removeItem("user");
+        setUser(null);
+      }
+
       setLoading(false);
     });
-  
+
     return () => unsubscribe();
   }, []);
 

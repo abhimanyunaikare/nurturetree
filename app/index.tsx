@@ -36,6 +36,7 @@
             const [sunlight, setSunlight] = useState("");
             const [water_qty, setWaterqty] = useState("");
             const [selectedTree, setSelectedTree] = useState(null);
+            const [createdBy, setCreatedBy] = useState(1);
 
             const mapRef = React.useRef(null);
             const [trees, setTrees] = useState([]); // Store trees fetched from API
@@ -58,41 +59,55 @@
                 const fetchUser = async () => {
                 const storedUser = await getStoredUser();
                 setUser(storedUser);
+                console.log(storedUser);
                 };
                 fetchUser();
             }, []);
 
-        useEffect(() => {
-            (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== "granted") {
-                Alert.alert("Permission Denied", "Location permission is required.");
-                return;
-            }
-            try {
+            useEffect(() => {
+                if (user) {
+                    setCreatedBy(user.id);
+                }
+            }, [user]);  // Updates state when user changes
 
-                let location = await Location.getCurrentPositionAsync({});  
-                const currentLocation = {  
-                latitude: location.coords.latitude,  
-                longitude: location.coords.longitude,  
-                };
-        
-                setUserLocation(currentLocation);  
-                setSelectedLocation(currentLocation);  
-                setRegion({ ...currentLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 });  
-                setLatitude(currentLocation.latitude.toString());
-                setLongitude(currentLocation.longitude.toString());
-                
-                // Fetch trees when location is available
-                fetchTrees();
+            useEffect(() => {
+                if (selectedLocation) {
+                    setLatitude(selectedLocation.latitude.toString());
+                    setLongitude(selectedLocation.longitude.toString());
+                }
+            }, [selectedLocation]); // Runs whenever `selectedLocation` changes
+            
+            useEffect(() => {
+                (async () => {
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== "granted") {
+                    Alert.alert("Permission Denied", "Location permission is required.");
+                    return;
+                }
+                try {
 
-            } catch (error) {
-        
-                console.error("Error getting location:", error);
-        
-            }
-            })();
-        }, []);
+                    let location = await Location.getCurrentPositionAsync({});  
+                    const currentLocation = {  
+                    latitude: location.coords.latitude,  
+                    longitude: location.coords.longitude,  
+                    };
+            
+                    setUserLocation(currentLocation);  
+                    setSelectedLocation(currentLocation);  
+                    setRegion({ ...currentLocation, latitudeDelta: 0.05, longitudeDelta: 0.05 });  
+                    setLatitude(currentLocation.latitude.toString());
+                    setLongitude(currentLocation.longitude.toString());
+                    
+                    // Fetch trees when location is available
+                    fetchTrees();
+
+                } catch (error) {
+            
+                    console.error("Error getting location:", error);
+            
+                }
+                })();
+            }, []);
 
             const fetchTrees = async () => {
                 try {
@@ -159,7 +174,7 @@
                                 },
                                 body: JSON.stringify({
                                     tree_id: treeId, 
-                                    watered_by: "user123",  // Replace with actual user ID or name
+                                    watered_by: user? user.id : 1,  // Replace with actual user ID or name
                                 }),
                             });
                             if (response.ok) {
@@ -194,9 +209,10 @@
                     age: treeAge,  
                     lat: selectedLocation.latitude.toString(),  
                     long: selectedLocation.longitude.toString(),  
-                    interval: interval,  
-                    sunlight: sunlight,  
-                    water_qty: water_qty,  
+                    interval: interval ? interval : 1,  
+                    sunlight: sunlight ? sunlight : 'Full Sun',  
+                    water_qty: water_qty ? water_qty : '500ml',  
+                    created_by: createdBy ? createdBy : user.id,  
                 };
             
                 try {  
@@ -215,6 +231,7 @@
                         setTreeName("");
                         setTreeType("");
                         setTreeAge("");
+                        setInterval("");
 
                     } else {
 
@@ -381,7 +398,7 @@
                     </View>
                     <View style={styles.inputContainer2}>
                         <Icon name="account-cowboy-hat-outline" size={20} color="#666" style={styles.icon} />
-                        <TextInput style={styles.input} placeholder="Planted By" value={user.name} editable={false} />
+                        <TextInput style={styles.input} placeholder="createdBy" value={user ? user.id.toString() : 1} editable={false} />
                     </View>
                     {/* Interval for Watering Plant Dropdown */}
                     <View style={styles.inputContainer}>
@@ -392,7 +409,10 @@
                         <View style={styles.pickerWrapper}>
                             <Picker
                             selectedValue={interval}
-                            onValueChange={(itemValue) => setInterval(itemValue)}
+                            onValueChange={(itemValue) => {
+                                console.log("Interval Changed:", itemValue);
+                                setInterval(itemValue);
+                            }}
                             style={styles.picker}
                             mode="dropdown"
                             >
