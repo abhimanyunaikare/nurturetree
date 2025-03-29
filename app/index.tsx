@@ -15,6 +15,8 @@
         import { useRouter } from "expo-router";
         import { Feather, FontAwesome5 } from "@expo/vector-icons";
         import { Picker } from '@react-native-picker/picker';
+        import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+
         import { Circle } from 'react-native-maps';
 
 
@@ -94,7 +96,7 @@
 
             const fetchTrees = async () => {
                 try {
-                    const response = await fetch("http://192.168.35.131:8000/api/trees");
+                    const response = await fetch("http://192.168.161.131:8000/api/trees");
                     const jsonResponse = await response.json();
 
                     if (jsonResponse.success && Array.isArray(jsonResponse.data.data)) {
@@ -150,7 +152,7 @@
                     text: "OK",
                     onPress: async () => {
                         try {
-                            const response = await fetch(`http://192.168.35.131:8000/api/trees/${treeId}/nurture`, {
+                            const response = await fetch(`http://192.168.161.131:8000/api/trees/${treeId}/nurture`, {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -198,7 +200,8 @@
                 };
             
                 try {  
-                    const response = await fetch("http://192.168.35.131:8000/api/trees", {
+                    console.log(treeData);
+                    const response = await fetch("http://192.168.161.131:8000/api/trees", {
                         method: "POST",
                         headers: {
                         "Content-Type": "application/json",
@@ -254,7 +257,6 @@
                 <MapView style={styles.map} region={region}
                     ref={mapRef}
                     provider={PROVIDER_GOOGLE}
-                    style={styles.map}
                     initialRegion={{
                         latitude: userLocation?.latitude || 20.5937,
                         longitude: userLocation?.longitude || 78.9629,
@@ -347,19 +349,46 @@
                 <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Add a Tree</Text>
-                    <TextInput
-                    style={styles.input}
-                    placeholder="Enter tree name (optional)"
-                    value={treeName}
-                    onChangeText={setTreeName}
-                    />
-                    <TextInput style={styles.input} placeholder="Tree Type (specimen)" value={treeType} onChangeText={setTreeType} />
-                    <TextInput style={styles.input} placeholder="Tree Age (days)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
-                    <TextInput style={styles.input} placeholder="Latitude" value={latitude} editable={false} />
-                    <TextInput style={styles.input} placeholder="Longitude" value={longitude} editable={false} />
+                    <View style={styles.inputContainer2}>
+                        <Icon name="account-outline" size={20} color="#666" style={styles.icon} />
+                        <TextInput
+                        style={styles.input}
+                        placeholder="Enter tree name (optional)"
+                        value={treeName}
+                        onChangeText={setTreeName}
+                        />
+                    </View>
+                    <View style={styles.inputContainer2}>
+                        <Icon name="tree-outline" size={20} color="#666" style={styles.icon} />
+                        <TextInput style={styles.input} placeholder="Tree Type (specimen)" value={treeType} onChangeText={setTreeType} />
+                    </View>
+                    <View style={styles.inputContainer2}>
+                        <Icon name="calendar-clock" size={20} color="#666" style={styles.icon} />
+                        <TextInput style={styles.input} placeholder="Tree Age (days)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
+                    </View>
+                    <View style={styles.inputContainer2}>
+                        <Icon name="map-marker" size={20} color="#666" style={styles.icon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Latitude"
+                            value={latitude}
+                            editable={false}
+                        />
+                    </View>
+                    <View style={styles.inputContainer2}>
+                        <Icon name="map-marker-radius" size={20} color="#666" style={styles.icon} />
+                        <TextInput style={styles.input} placeholder="Longitude" value={longitude} editable={false} />
+                    </View>
+                    <View style={styles.inputContainer2}>
+                        <Icon name="account-cowboy-hat-outline" size={20} color="#666" style={styles.icon} />
+                        <TextInput style={styles.input} placeholder="Planted By" value={user.name} editable={false} />
+                    </View>
                     {/* Interval for Watering Plant Dropdown */}
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Watering Interval</Text>
+                        <View style={styles.labelContainer}>
+                            <Icon name="timer-sand" size={20} color="#666" style={styles.icon2} />
+                            <Text style={styles.label}>Watering Interval :</Text>
+                        </View>
                         <View style={styles.pickerWrapper}>
                             <Picker
                             selectedValue={interval}
@@ -373,11 +402,13 @@
                             </Picker>
                         </View>
                     </View>
-
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Sunlight Requirement</Text>
+                        <View style={styles.labelContainer}>
+                            <Icon name="weather-sunny" size={20} color="#666" style={styles.icon2} />
+                            <Text style={styles.label}>Sunlight Requirement :</Text>
+                        </View>
                         <View style={styles.pickerWrapper}>
-                            <Picker
+                        <Picker
                             selectedValue={sunlight}
                             onValueChange={(itemValue) => setSunlight(itemValue)}
                             style={styles.picker}
@@ -388,11 +419,13 @@
                             </Picker>
                         </View>
                     </View>
-
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Water Quantity</Text>
+                        <View style={styles.labelContainer}>
+                            <Icon name="water-outline" size={20} color="#666" style={styles.icon2} />
+                            <Text style={styles.label}>Water Quantity :</Text>
+                        </View>
                         <View style={styles.pickerWrapper}>
-                            <Picker
+                        <Picker
                             selectedValue={water_qty}
                             onValueChange={(itemValue) => setWaterqty(itemValue)}
                             style={styles.picker}
@@ -400,9 +433,10 @@
                             <Picker.Item label="500ml" value="500ml" />
                             <Picker.Item label="1 Liter" value="1L" />
                             <Picker.Item label="2 Liters" value="2L" />
-                            </Picker>
+                        </Picker>
                         </View>
                     </View>
+
                     <View style={styles.modalButtons}>
                     <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
                         <Text style={styles.buttonText}>Submit</Text>
@@ -424,11 +458,28 @@
                 marginBottom: 8,
                 width: "100%",
             },
+            inputContainer2: {
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 10,
+                paddingVertical: 1,
+            },
+            labelContainer: {
+                flexDirection: 'row', // Arrange items in a row
+                alignItems: 'center', // Align them vertically in the center
+                marginBottom: 8, // Add some spacing if needed
+            },
+            icon: {
+                marginRight: 3,
+                marginBottom:5
+            }, 
+            icon2: {
+                marginRight: 3
+            },            
             label: {
                 fontSize: 14,
                 color: "#444",
-                marginBottom: 3,
-                marginLeft: 2,
+                //marginLeft: 2,
             },
             pickerWrapper: {
                 borderWidth: 1,
@@ -436,15 +487,12 @@
                 borderRadius: 6,
                 backgroundColor: "#fff",
                 width: "100%",
-                height: 50, // Increased height
-                justifyContent: "center",
-                paddingHorizontal: 8,
+                height: 40
             },
             picker: {
-                fontSize: 16,
-                color: "#333",
-                height: 50, // Ensure enough space for text
-                paddingVertical: 10, // Adjust vertical padding
+                fontSize: 10,
+                marginTop:-8,
+                color: "#333",                
             },
             waterButton: {
                 backgroundColor: "blue",

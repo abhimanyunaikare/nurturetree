@@ -17,7 +17,7 @@ export const signUp = async (name: string, email: string, password: string) => {
     const user = userCredential.user;
 
     // Send user data to Laravel API
-    const response = await fetch("http://192.168.35.131:8000/api/register", {
+    const response = await fetch("http://192.168.161.131:8000/api/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -46,6 +46,8 @@ export const signUp = async (name: string, email: string, password: string) => {
 
 export const getStoredUser = async () => {
   const userData = await AsyncStorage.getItem("user");
+  console.log("loged user:");
+  console.log(userData);
   return userData ? JSON.parse(userData) : null; 
 };
 
@@ -67,7 +69,7 @@ export const logIn = async (email: string, password: string) => {
 
     const user = userCredential.user;
 
-    const response = await fetch(`http://192.168.35.131:8000/api/user?email=${email}`);
+    const response = await fetch(`http://192.168.161.131:8000/api/user?email=${email}`);
     const userData = await response.json();
     console.log(userData);
     if (userData.success) {
