@@ -1,0 +1,8 @@
+** Devleopment
+
+get ip address
+
+    ifconfig
+
+    inet 192.168.141.131  net...
+    replace this in the code.

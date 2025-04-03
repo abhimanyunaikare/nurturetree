@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { signUp, logIn, signInWithGoogle, onAuthStateChange } from "@/hooks/authService";
+import { signUp, logIn, signInWithGoogle, getStoredUser, onAuthStateChange } from "@/hooks/authService";
 import { User } from "firebase/auth";
 import { AntDesign } from "@expo/vector-icons";
 
@@ -16,6 +16,7 @@ const AuthScreen: React.FC = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
+      console.log('useEfect unsubscribe');
       setUser(user);
       if (user) {
         router.push("/"); // Redirect to home if user is authenticated
@@ -27,11 +28,20 @@ const AuthScreen: React.FC = () => {
   const handleAuth = async () => {
     setError(null);
     try {
+      console.log('handle auth')
       if (isLogin) {
         await logIn(email, password);
       } else {
         await signUp(name, email, password);
       }
+
+
+    const storedUser = await getStoredUser();  // Fetch updated user
+    console.log("User after login:", storedUser);  // Debugging log
+
+    if (storedUser) {
+      router.push("/"); // Navigate to home only after user is available
+    }
     } catch (err: any) {
       setError(err.message);
     }
@@ -90,7 +100,7 @@ const AuthScreen: React.FC = () => {
 
       <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
         <Text style={styles.toggleText}>
-          {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+          {isLogin ? "Don't have an account? Sign up." : "Already have an account? Login"}
         </Text>
       </TouchableOpacity>
     </View>

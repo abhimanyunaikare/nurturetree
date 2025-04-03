@@ -57,9 +57,10 @@
 
             useEffect(() => {
                 const fetchUser = async () => {
+                console.log("Fetching stored user...");
                 const storedUser = await getStoredUser();
+                console.log("User in index.tsx:", storedUser); // <-- Add this line
                 setUser(storedUser);
-                console.log(storedUser);
                 };
                 fetchUser();
             }, []);
@@ -111,7 +112,8 @@
 
             const fetchTrees = async () => {
                 try {
-                    const response = await fetch("http://192.168.161.131:8000/api/trees");
+                    const response = await fetch("http://192.168.141.131:8000/api/trees");
+                    
                     const jsonResponse = await response.json();
 
                     if (jsonResponse.success && Array.isArray(jsonResponse.data.data)) {
@@ -167,7 +169,7 @@
                     text: "OK",
                     onPress: async () => {
                         try {
-                            const response = await fetch(`http://192.168.161.131:8000/api/trees/${treeId}/nurture`, {
+                            const response = await fetch(`http://192.168.141.131:8000/api/trees/${treeId}/nurture`, {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -217,7 +219,7 @@
             
                 try {  
                     console.log(treeData);
-                    const response = await fetch("http://192.168.161.131:8000/api/trees", {
+                    const response = await fetch("http://192.168.141.131:8000/api/trees", {
                         method: "POST",
                         headers: {
                         "Content-Type": "application/json",
@@ -245,7 +247,25 @@
             
             };
 
+        if (user === null) {
+            return (
+                <View style={styles.container}>
+                    <View style={styles.container}>
+                        <ActivityIndicator size="large" color="#0000ff" />
+                        <Text>Loading user...</Text>
+                    </View>
+
+                    <View style={styles.header}>                        
+                        <TouchableOpacity onPress={logOut}>
+                        <Feather name="log-out" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            );
+        }
+
         return (
+            
             <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>

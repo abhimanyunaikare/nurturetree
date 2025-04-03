@@ -17,8 +17,10 @@ export default function Layout() {
   useEffect(() => {
     // Load user from AsyncStorage first
     const loadStoredUser = async () => {
+      console.log('start');
       const storedUser = await getStoredUser();
       if (storedUser) {
+        console.log('about to set user');
         setUser(storedUser); // Set user immediately if available
       }
     };
@@ -28,6 +30,7 @@ export default function Layout() {
     // Listen to Firebase auth state
     const unsubscribe = onAuthStateChange(async (authUser) => {
       if (authUser) {
+        console.log('unsubscribe');
         const storedUser = await getStoredUser();
         setUser(storedUser || authUser); // Prefer stored user with extra details
       } else {
@@ -46,10 +49,13 @@ export default function Layout() {
   
     const isAuthPage = segments[0] === "auth";
   
+    console.log('getting user');
     if (!user && !isAuthPage) {
+      console.log('user is not null');
       setRedirecting(true);
       router.replace("/auth");
     } else if (user && isAuthPage) {
+      console.log('redirect to auth')
       setRedirecting(true);
       router.replace("/");
     }
