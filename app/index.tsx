@@ -7,7 +7,9 @@
         ActivityIndicator,
         Modal,
         TextInput,
-        Alert
+        Alert,
+        Image,
+        ScrollView
         } from "react-native";
         import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
         import * as Location from "expo-location";
@@ -16,8 +18,10 @@
         import { Feather, FontAwesome5 } from "@expo/vector-icons";
         import { Picker } from '@react-native-picker/picker';
         import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-
         import { Circle } from 'react-native-maps';
+        import * as ImagePicker from 'expo-image-picker';
+
+        import UserInfoScreen from "./user-info";
 
 
         const Index: React.FC = () => {
@@ -37,6 +41,7 @@
             const [water_qty, setWaterqty] = useState("");
             const [selectedTree, setSelectedTree] = useState(null);
             const [createdBy, setCreatedBy] = useState(1);
+            const [photoUri, setPhotoUri] = useState<string | null>(null);
 
             const mapRef = React.useRef(null);
             const [trees, setTrees] = useState([]); // Store trees fetched from API
@@ -51,7 +56,6 @@
             });
 
             // Simulated user data
-            const userName = "John Doe";
             const treesPlanted = 15;
             const treesNeedingHelp = 3;
 
@@ -78,6 +82,7 @@
                 }
             }, [selectedLocation]); // Runs whenever `selectedLocation` changes
             
+          
             useEffect(() => {
                 (async () => {
                 let { status } = await Location.requestForegroundPermissionsAsync();
@@ -112,7 +117,7 @@
 
             const fetchTrees = async () => {
                 try {
-                    const response = await fetch("http://192.168.141.131:8000/api/trees");
+                    const response = await fetch("http://192.168.4.131:8000/api/trees");
                     
                     const jsonResponse = await response.json();
 
@@ -158,6 +163,7 @@
             };
 
 
+            
             const handleWaterTree = async (treeId) => {
 
                 Alert.alert("Water Tree", "Are you sure you want to water this tree?", [
@@ -169,7 +175,7 @@
                     text: "OK",
                     onPress: async () => {
                         try {
-                            const response = await fetch(`http://192.168.141.131:8000/api/trees/${treeId}/nurture`, {
+                            const response = await fetch(`http://192.168.4.131:8000/api/trees/${treeId}/nurture`, {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -200,6 +206,33 @@
                 setAddTreeModalVisible(true);
             };
 
+
+            const takePhoto = async () => {
+                console.log('Requesting camera permissions...');
+                
+                const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                if (status !== 'granted') {
+                    console.log('Camera permission denied');
+                    return;
+                }
+
+                console.log('Opening camera...');
+                const result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 1,
+                    allowsEditing: true,
+                    base64: false,
+                    saveToPhotos: true,
+                });
+
+                if (!result.canceled) {
+                    setPhotoUri(result.assets[0].uri);
+                    console.log("Photo URI:", result.assets[0].uri);
+                } else {
+                    console.log('User cancelled camera');
+                }
+            };
+
             const handleSubmitTree = async() => {
                 if (!selectedLocation || !treeName || !treeType) {
                     Alert.alert("Error", "Please fill in all fields and select a location.");
@@ -215,11 +248,13 @@
                     sunlight: sunlight ? sunlight : 'Full Sun',  
                     water_qty: water_qty ? water_qty : '500ml',  
                     created_by: createdBy ? createdBy : user.id,  
+                    photo_uri: photoUri, 
+
                 };
             
                 try {  
                     console.log(treeData);
-                    const response = await fetch("http://192.168.141.131:8000/api/trees", {
+                    const response = await fetch("http://192.168.4.131:8000/api/trees", {
                         method: "POST",
                         headers: {
                         "Content-Type": "application/json",
@@ -256,7 +291,16 @@
                     </View>
 
                     <View style={styles.header}>                        
-                        <TouchableOpacity onPress={logOut}>
+                        <TouchableOpacity onPress={() => {
+                            Alert.alert(
+                                "Confirm Logout", 
+                                "Are you sure you want to log out?",
+                                [
+                                    { text: "Cancel", style: "cancel" },
+                                    { text: "Logout", onPress: logOut }
+                                ]
+                            );
+                        }}>
                         <Feather name="log-out" size={24} color="white" />
                         </TouchableOpacity>
                     </View>
@@ -267,28 +311,40 @@
         return (
             
             <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerText}>Plant a Tree</Text>
-                <TouchableOpacity onPress={logOut}>
-                <Feather name="log-out" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.push("/user-info")}>
+                        <Feather name="user" size={24} color="white" style={styles.userIcon} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerText}>Plant a Tree</Text>
+                    <TouchableOpacity onPress={() => {
+                        Alert.alert(
+                            "Confirm Logout", 
+                            "Are you sure you want to log out?",
+                            [
+                                { text: "Cancel", style: "cancel" },
+                                { text: "Logout", onPress: logOut }
+                            ]
+                        );
+                    }}>
+                    <Feather name="log-out" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
 
-            {/* Floating User Info */}
-            <View style={styles.userInfo}>
-            <Text>Welcome {user ? user.name : "Guest"}!</Text>
+                {/* Floating User Info */}
+                <View style={styles.userInfo}>
+                <Text>Welcome {user ? user.name : "Guest"}!</Text>
 
-                <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
-                <FontAwesome5 name="seedling" size={18} color="green" />
-                <Text style={styles.statText}>{treesPlanted}</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
+                    <FontAwesome5 name="seedling" size={18} color="green" />
+                    <Text style={styles.statText}>{treesPlanted}</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
-                <FontAwesome5 name="exclamation-circle" size={18} color="red" />
-                <Text style={styles.statText}>{treesNeedingHelp}</Text>
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity style={styles.statItem} onPress={() => router.push("/")}>
+                    <FontAwesome5 name="exclamation-circle" size={18} color="red" />
+                    <Text style={styles.statText}>{treesNeedingHelp}</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Map View */}
                 <MapView style={styles.map} region={region}
@@ -355,11 +411,17 @@
                             {selectedTree && (
                                 <>
 
-                                <Text style={styles.modalTitle}>{selectedTree.name || "Tree Details"}</Text>
+                                <Text style={styles.modalTitle}>{selectedTree.name || "Tree Detail"}</Text>
                                 <Text>Type: {selectedTree.species}</Text>
-                                <Text>Age: {selectedTree.age || "Unknown"}</Text>
-                                <Text>Location: {selectedTree.lat}, {selectedTree.long}</Text>
-
+                                <Text>Age: {selectedTree.age || "Unknown"} days</Text>
+                                {/* <Text>Location: {selectedTree.lat}, {selectedTree.long}</Text> */}
+                                <Text>Interval: {selectedTree.interval} days</Text>
+                                <Text>Sunlight: {selectedTree.sunlight}</Text>
+                                <Text>
+                                Last Watered: {selectedTree.last_watered
+                                    ? new Date(selectedTree.last_watered).toLocaleDateString("en-GB")
+                                    : "Not available"}
+                                </Text>
                                 <TouchableOpacity
                                     style={styles.waterButton}
                                     onPress={() => handleWaterTree(selectedTree.id)}
@@ -384,108 +446,132 @@
             {/* Modal for Adding Tree Details */}
             <Modal visible={addTreeModalVisible} animationType="slide" transparent={true}>
                 <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add a Tree</Text>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="account-outline" size={20} color="#666" style={styles.icon} />
-                        <TextInput
-                        style={styles.input}
-                        placeholder="Enter tree name (optional)"
-                        value={treeName}
-                        onChangeText={setTreeName}
-                        />
-                    </View>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="tree-outline" size={20} color="#666" style={styles.icon} />
-                        <TextInput style={styles.input} placeholder="Tree Type (specimen)" value={treeType} onChangeText={setTreeType} />
-                    </View>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="calendar-clock" size={20} color="#666" style={styles.icon} />
-                        <TextInput style={styles.input} placeholder="Tree Age (days)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
-                    </View>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="map-marker" size={20} color="#666" style={styles.icon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Latitude"
-                            value={latitude}
-                            editable={false}
-                        />
-                    </View>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="map-marker-radius" size={20} color="#666" style={styles.icon} />
-                        <TextInput style={styles.input} placeholder="Longitude" value={longitude} editable={false} />
-                    </View>
-                    <View style={styles.inputContainer2}>
-                        <Icon name="account-cowboy-hat-outline" size={20} color="#666" style={styles.icon} />
-                        <TextInput style={styles.input} placeholder="createdBy" value={user ? user.id.toString() : 1} editable={false} />
-                    </View>
-                    {/* Interval for Watering Plant Dropdown */}
-                    <View style={styles.inputContainer}>
-                        <View style={styles.labelContainer}>
-                            <Icon name="timer-sand" size={20} color="#666" style={styles.icon2} />
-                            <Text style={styles.label}>Watering Interval :</Text>
-                        </View>
-                        <View style={styles.pickerWrapper}>
-                            <Picker
-                            selectedValue={interval}
-                            onValueChange={(itemValue) => {
-                                console.log("Interval Changed:", itemValue);
-                                setInterval(itemValue);
-                            }}
-                            style={styles.picker}
-                            mode="dropdown"
-                            >
-                            <Picker.Item label="Daily" value="1" />
-                            <Picker.Item label="Every 3 Days" value="3" />
-                            <Picker.Item label="Weekly" value="7" />
-                            </Picker>
-                        </View>
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <View style={styles.labelContainer}>
-                            <Icon name="weather-sunny" size={20} color="#666" style={styles.icon2} />
-                            <Text style={styles.label}>Sunlight Requirement :</Text>
-                        </View>
-                        <View style={styles.pickerWrapper}>
-                        <Picker
-                            selectedValue={sunlight}
-                            onValueChange={(itemValue) => setSunlight(itemValue)}
-                            style={styles.picker}
-                            >
-                            <Picker.Item label="Full Sun" value="full_sun" />
-                            <Picker.Item label="Partial Shade" value="partial_shade" />
-                            <Picker.Item label="Low Light" value="low_light" />
-                            </Picker>
-                        </View>
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <View style={styles.labelContainer}>
-                            <Icon name="water-outline" size={20} color="#666" style={styles.icon2} />
-                            <Text style={styles.label}>Water Quantity :</Text>
-                        </View>
-                        <View style={styles.pickerWrapper}>
-                        <Picker
-                            selectedValue={water_qty}
-                            onValueChange={(itemValue) => setWaterqty(itemValue)}
-                            style={styles.picker}
-                            >
-                            <Picker.Item label="500ml" value="500ml" />
-                            <Picker.Item label="1 Liter" value="1L" />
-                            <Picker.Item label="2 Liters" value="2L" />
-                        </Picker>
-                        </View>
-                    </View>
+                    <View style={styles.modalContent}>
+                        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
 
-                    <View style={styles.modalButtons}>
-                    <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
-                        <Text style={styles.buttonText}>Submit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.cancelButton} onPress={() => setAddTreeModalVisible(false)}>
-                        <Text style={styles.buttonText}>Cancel</Text>
-                    </TouchableOpacity>
+                            <Text style={styles.modalTitle}>Add a Tree</Text>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="account-outline" size={20} color="#666" style={styles.icon} />
+                                <TextInput
+                                style={styles.input}
+                                placeholder="Enter tree name (optional)"
+                                value={treeName}
+                                onChangeText={setTreeName}
+                                />
+                            </View>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="tree-outline" size={20} color="#666" style={styles.icon} />
+                                <TextInput style={styles.input} placeholder="Tree Type (specimen)" value={treeType} onChangeText={setTreeType} />
+                            </View>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="calendar-clock" size={20} color="#666" style={styles.icon} />
+                                <TextInput style={styles.input} placeholder="Tree Age (days)" value={treeAge} onChangeText={setTreeAge} keyboardType="numeric" />
+                            </View>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="map-marker" size={20} color="#666" style={styles.icon} />
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Latitude"
+                                    value={latitude}
+                                    editable={false}
+                                />
+                            </View>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="map-marker-radius" size={20} color="#666" style={styles.icon} />
+                                <TextInput style={styles.input} placeholder="Longitude" value={longitude} editable={false} />
+                            </View>
+                            <View style={styles.inputContainer2}>
+                                <Icon name="account-cowboy-hat-outline" size={20} color="#666" style={styles.icon} />
+                                <TextInput style={styles.input} placeholder="createdBy" value={user ? user.id.toString() : 1} editable={false} />
+                            </View>
+                            {/* Interval for Watering Plant Dropdown */}
+                            <View style={styles.inputContainer}>
+                                <View style={styles.labelContainer}>
+                                    <Icon name="timer-sand" size={20} color="#666" style={styles.icon2} />
+                                    <Text style={styles.label}>Watering Interval :</Text>
+                                </View>
+                                <View style={styles.pickerWrapper}>
+                                    <Picker
+                                    selectedValue={interval}
+                                    onValueChange={(itemValue) => {
+                                        console.log("Interval Changed:", itemValue);
+                                        setInterval(itemValue);
+                                    }}
+                                    style={styles.picker}
+                                    mode="dropdown"
+                                    >
+                                    <Picker.Item label="Daily" value="1" />
+                                    <Picker.Item label="Every 3 Days" value="3" />
+                                    <Picker.Item label="Weekly" value="7" />
+                                    </Picker>
+                                </View>
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <View style={styles.labelContainer}>
+                                    <Icon name="weather-sunny" size={20} color="#666" style={styles.icon2} />
+                                    <Text style={styles.label}>Sunlight Requirement :</Text>
+                                </View>
+                                <View style={styles.pickerWrapper}>
+                                <Picker
+                                    selectedValue={sunlight}
+                                    onValueChange={(itemValue) => setSunlight(itemValue)}
+                                    style={styles.picker}
+                                    >
+                                    <Picker.Item label="Full Sun" value="full sun" />
+                                    <Picker.Item label="Partial Shade" value="partial shade" />
+                                    <Picker.Item label="Low Light" value="low light" />
+                                    </Picker>
+                                </View>
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <View style={styles.labelContainer}>
+                                    <Icon name="water-outline" size={20} color="#666" style={styles.icon2} />
+                                    <Text style={styles.label}>Water Quantity :</Text>
+                                </View>
+                                <View style={styles.pickerWrapper}>
+                                <Picker
+                                    selectedValue={water_qty}
+                                    onValueChange={(itemValue) => setWaterqty(itemValue)}
+                                    style={styles.picker}
+                                    >
+                                    <Picker.Item label="500ml" value="500ml" />
+                                    <Picker.Item label="1 Liter" value="1L" />
+                                    <Picker.Item label="2 Liters" value="2L" />
+                                </Picker>
+                                </View>
+                            </View>
+
+                            <View style={{ backgroundColor: "#fff", padding: 20, borderRadius: 10 }}>
+                                <View style={styles.labelContainer}>
+                                    <Icon name="camera-outline" size={20} color="#666" style={styles.icon2} />
+                                    <Text style={styles.label}>Photo :</Text>
+                                </View>
+                                {/* Show Image Preview if a Photo is Taken */}
+                                {photoUri ? (
+                                    <View style={{ alignItems: "center" }}>
+                                        <Image source={{ uri: photoUri }} style={{ width: 200, height: 200 }} />
+                                        <TouchableOpacity onPress={() => setPhotoUri(null)} style={styles.retakeButton}>
+                                            <Text style={styles.buttonText}>Retake Photo</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity onPress={takePhoto} style={{ padding: 10, backgroundColor: "#008CBA", marginTop: 10 }}>
+                                        <Text style={{ color: "#fff" }}>Take Photo</Text>
+                                    </TouchableOpacity>
+                                )}                        
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTree}>
+                                    <Text style={styles.buttonText}>Submit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.cancelButton} onPress={() => setAddTreeModalVisible(false)}>
+                                    <Text style={styles.buttonText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+
                     </View>
-                </View>
                 </View>
             </Modal>
             </View>
@@ -496,7 +582,7 @@
             container: { flex: 1 },
             inputContainer: {
                 marginBottom: 8,
-                width: "100%",
+                width: "90%",
             },
             inputContainer2: {
                 flexDirection: "row",
@@ -566,6 +652,13 @@
                 zIndex: 10,
                 elevation: 5,
             },
+            photoButton: { backgroundColor: "#84a134", padding: 10, borderRadius: 5, alignItems: "center" },
+            photoButtonText: { color: "white", fontSize: 16 },
+            imagePreview: { width: 100, height: 100, marginBottom: 10 },
+            camera: { flex: 1, justifyContent: "center" },
+            cameraContainer: { flex: 1, justifyContent: "flex-end", alignItems: "center", marginBottom:5 },
+            captureButton: { marginBottom: 20, backgroundColor: "red", padding: 10, borderRadius: 50 },
+          
             userName: { fontSize: 16, fontWeight: "bold", marginBottom: 5 },
             statItem: { flexDirection: "row", alignItems: "center", padding: 5 },
             statText: { fontSize: 16, marginLeft: 5, fontWeight: "bold" },
@@ -595,7 +688,7 @@
                 backgroundColor: "rgba(0,0,0,0.5)",
             },
             modalContent: {
-                width: "80%",
+                width: "90%",
                 backgroundColor: "white",
                 padding: 20,
                 borderRadius: 10,
@@ -603,12 +696,23 @@
             },
             modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
             input: {
-                width: "100%",
+                width: "90%",
                 padding: 10,
                 borderWidth: 1,
                 borderColor: "#ccc",
                 borderRadius: 5,
                 marginBottom: 10,
+            },
+            scrollContainer: {
+                flexGrow: 1,
+                alignItems: "center",
+            },
+            retakeButton: {
+                marginTop: 10,
+                padding: 10,
+                backgroundColor: "#FF5733", // Red color for retake
+                borderRadius: 5,
+                alignItems: "center",
             },
             modalButtons: { flexDirection: "row", width: "100%", justifyContent: "space-between" },
             submitButton: { flex: 1, backgroundColor: "#28a745", padding: 10, borderRadius: 5, marginRight: 5 },

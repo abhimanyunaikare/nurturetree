@@ -1,8 +1,24 @@
 ** Devleopment
 
-get ip address
+1. get ip address
 
-    ifconfig
+    A. ifconfig
 
     inet 192.168.141.131  net...
     replace this in the code.
+
+    B. ip a | grep "inet "
+
+2. npx expo start
+    * clear cache:
+    npx expo start -c
+
+3. Since some dependencies are mismatched, run:
+
+    npx expo doctor --fix-dependencies
+    * This will automatically install the correct versions.
+
+4. RUN APP :
+    npm start -- --reset-cache
+
+    // npx expo start -c

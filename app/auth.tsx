@@ -36,12 +36,12 @@ const AuthScreen: React.FC = () => {
       }
 
 
-    const storedUser = await getStoredUser();  // Fetch updated user
-    console.log("User after login:", storedUser);  // Debugging log
+      const storedUser = await getStoredUser();  // Fetch updated user
+      console.log("User after login:", storedUser);  // Debugging log
 
-    if (storedUser) {
-      router.push("/"); // Navigate to home only after user is available
-    }
+      if (storedUser) {
+        router.push("/"); // Navigate to home only after user is available
+      }
     } catch (err: any) {
       setError(err.message);
     }
@@ -62,7 +62,7 @@ const AuthScreen: React.FC = () => {
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      
+
       <TextInput
         style={styles.input}
         placeholder="Name"
@@ -70,7 +70,7 @@ const AuthScreen: React.FC = () => {
         onChangeText={setName}
         autoCapitalize="words"
       />
-    
+
 
       <TextInput
         style={styles.input}
