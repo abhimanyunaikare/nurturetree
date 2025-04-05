@@ -9,6 +9,9 @@
 
     B. ip a | grep "inet "
 
+    C. hostname -I
+
+
 2. npx expo start
     * clear cache:
     npx expo start -c

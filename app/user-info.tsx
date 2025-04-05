@@ -17,13 +17,30 @@ const UserInfoScreen = () => {
         },
     };
 
+        
     const handleShare = async () => {
         try {
-            await Share.share({
-                message: `I've planted ${user.stats.treesPlanted} trees! Join me in nurturing nature! 🌱`,
-            });
+        const message = `
+            🌿 My Green Journey 🌿
+            
+            📅 This Month:
+            🌳 Planted: ${user.stats.thisMonth.treesPlanted}
+            💧 Watered: ${user.stats.thisMonth.watered}
+            🍃 Nurtured: ${user.stats.thisMonth.nurtured}
+            🌱 Seeds Donated: ${user.stats.thisMonth.seedsDonated}
+            
+            📊 Total Stats:
+            🌳 Planted: ${user.stats.total.treesPlanted}
+            💧 Watered: ${user.stats.total.watered}
+            🍃 Nurtured: ${user.stats.total.nurtured}
+            🌱 Seeds Donated: ${user.stats.total.seedsDonated}
+            
+            Join me in planting trees! 🌎 #NurtureTree
+            `;
+    
+        await Share.share({ message });
         } catch (error) {
-            console.error("Error sharing:", error);
+        console.log('Error sharing:', error.message);
         }
     };
 
@@ -36,67 +53,50 @@ const UserInfoScreen = () => {
                     <Feather name="arrow-left" size={24} color="white"/>
                 </TouchableOpacity>
                 <Text style={styles.headerText}>User Info</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={handleShare}>
                     <Feather name="share-2" size={24} color="white" />
                 </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
 
-                {/* User Details */}
-                <View style={styles.userInfo}>
-                    <MaterialCommunityIcons name="account-circle" size={80} color="#008CBA" />
-                    <Text style={styles.userName}>{user.name}</Text>
-                    <Text style={styles.userEmail}>{user.email}</Text>
-                </View>
-
-                {/* User Statistics
-                <View style={styles.statsContainer}>
-                    <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="tree" size={30} color="#2E8B57" />
-                        <Text style={styles.statNumber}>{user.stats.treesPlanted}</Text>
-                        <Text style={styles.statLabel}>Planted</Text>
-                    </View>
-
-                    <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="watering-can" size={30} color="#1E90FF" />
-                        <Text style={styles.statNumber}>{user.stats.watered}</Text>
-                        <Text style={styles.statLabel}>Watered</Text>
-                    </View>
-
-                    <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="leaf" size={30} color="#32CD32" />
-                        <Text style={styles.statNumber}>{user.stats.nurtured}</Text>
-                        <Text style={styles.statLabel}>Nurtured</Text>
-                    </View>
-
-                    <View style={styles.statItem}>
-                        <MaterialCommunityIcons name="seed-outline" size={30} color="#FF8C00" />
-                        <Text style={styles.statNumber}>{user.stats.seedsDonated}</Text>
-                        <Text style={styles.statLabel}>Seeds Donated</Text>
-                    </View>
-                </View> */}
-
                 {/* Stats Section */}
-                <View style={styles.statsWrapper}>
-                    {/* This Month Stats */}
-                    <Text style={styles.statsHeader}>🌿 This Month</Text>
-                    <View style={styles.statsContainer}>
-                        {renderStat("tree", "#2E8B57", user.stats.thisMonth.treesPlanted, "Planted")}
-                        {renderStat("watering-can", "#1E90FF", user.stats.thisMonth.watered, "Watered")}
-                        {renderStat("leaf", "#32CD32", user.stats.thisMonth.nurtured, "Nurtured")}
-                        {renderStat("seed-outline", "#FF8C00", user.stats.thisMonth.seedsDonated, "Seeds")}
-                    </View>
+    <View style={styles.statsWrapper}>
+        {/* This Month */}
+        <Text style={styles.statsHeader}>🌿 This Month</Text>
+        <View style={styles.statsRow}>
+            {renderStat("tree", "#2E8B57", user.stats.thisMonth.treesPlanted, "Planted")}
+            {renderStat("watering-can", "#1E90FF", user.stats.thisMonth.watered, "Watered")}
+            {renderStat("leaf", "#32CD32", user.stats.thisMonth.nurtured, "Nurtured")}
+            {renderStat("seed-outline", "#FF8C00", user.stats.thisMonth.seedsDonated, "Seeds")}
+        </View>
 
-                    {/* Total Stats */}
-                    <Text style={styles.statsHeader}>📊 Total</Text>
-                    <View style={styles.statsContainer}>
-                        {renderStat("tree", "#2E8B57", user.stats.total.treesPlanted, "Planted")}
-                        {renderStat("watering-can", "#1E90FF", user.stats.total.watered, "Watered")}
-                        {renderStat("leaf", "#32CD32", user.stats.total.nurtured, "Nurtured")}
-                        {renderStat("seed-outline", "#FF8C00", user.stats.total.seedsDonated, "Seeds")}
-                    </View>
-                </View>
+        {/* Total */}
+        <Text style={styles.statsHeader}>📊 Total</Text>
+        <View style={styles.statsRow}>
+            {renderStat("tree", "#2E8B57", user.stats.total.treesPlanted, "Planted")}
+            {renderStat("watering-can", "#1E90FF", user.stats.total.watered, "Watered")}
+            {renderStat("leaf", "#32CD32", user.stats.total.nurtured, "Nurtured")}
+            {renderStat("seed-outline", "#FF8C00", user.stats.total.seedsDonated, "Seeds")}
+        </View>
+
+        {/* Badges */}
+        <Text style={styles.statsHeader}>🏅 Badges Earned</Text>
+        <View style={styles.badgesRow}>
+            <View style={styles.badgeItem}>
+                <MaterialCommunityIcons name="star-circle" size={32} color="#FFD700" />
+                <Text style={styles.badgeLabel}>Eco Starter</Text>
+            </View>
+            <View style={styles.badgeItem}>
+                <MaterialCommunityIcons name="fire" size={32} color="#FF4500" />
+                <Text style={styles.badgeLabel}>Tree Warrior</Text>
+            </View>
+            <View style={styles.badgeItem}>
+                <MaterialCommunityIcons name="leaf-circle" size={32} color="#32CD32" />
+                <Text style={styles.badgeLabel}>Green Hero</Text>
+            </View>
+        </View>
+    </View>
             </ScrollView>
         </View>
     );
@@ -165,23 +165,39 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-around",
+    },statsRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        marginBottom: 10,
     },
     statItem: {
         alignItems: "center",
-        width: "45%",
-        padding: 15,
-        backgroundColor: "#F5F5F5",
-        borderRadius: 10,
-        marginBottom: 15,
+        width: "22%", // 4 items in a row
     },
     statNumber: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: "bold",
-        marginTop: 5,
+        marginTop: 4,
     },
     statLabel: {
-        fontSize: 14,
+        fontSize: 12,
         color: "gray",
+    },
+    
+    badgesRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        marginTop: 10,
+    },
+    badgeItem: {
+        alignItems: "center",
+        width: "30%",
+    },
+    badgeLabel: {
+        fontSize: 12,
+        textAlign: "center",
+        marginTop: 4,
+        color: "#333",
     },
     scrollContainer: {
         flexGrow: 1,

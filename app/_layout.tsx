@@ -3,7 +3,8 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { useEffect, useState } from "react";
 import { onAuthStateChange, getStoredUser } from "@/hooks/authService";   
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import * as Notifications from 'expo-notifications';
+import * as Permissions from 'expo-permissions';
 
 import { User } from "firebase/auth";
 
@@ -14,6 +15,17 @@ export default function Layout() {
   const [loading, setLoading] = useState(true); // Track auth state
   const [redirecting, setRedirecting] = useState(false); // Prevent multiple redirects
 
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Enable notifications to get watering reminders!');
+      }
+    };
+  
+    requestPermissions();
+  }, []);
+  
   useEffect(() => {
     // Load user from AsyncStorage first
     const loadStoredUser = async () => {
